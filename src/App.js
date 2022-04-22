@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 import "./custom.css";
 import { styled } from "@mui/material/styles";
-import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import {
@@ -14,20 +13,36 @@ import {
   Popup,
   Tooltip,
 } from "react-leaflet";
+import L from "leaflet";
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+  iconUrl: require("leaflet/dist/images/marker-icon.png"),
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
 
 function App() {
   const [cities, setCities] = useState([]);
   const [cityDetails, setCityDetails] = useState([]);
-  const [city, setCity] = useState("");
+  const [cord, setCord] = useState([]);
   const [text, setText] = useState(" ");
   const [suggestions, setSuggestions] = useState([]);
+  const mapRef = useRef();
 
   useEffect(() => {
+
+    // leafElement.locate({
+    //   setView : true,
+    // });
+
     (async () => {
       const res = await axios.get(`${process.env.REACT_APP_API}`);
       setCities(res.data);
     })();
-  }, []);
+    
+  }, [cityDetails, text, cord]);
 
   const onSuggestHandler = (text) => {
     setText(text);
@@ -36,12 +51,14 @@ function App() {
 
   const handleChange = (text) => {
     let matches = [];
-    if (text.length > 0 > 0) {
+    if (text.length > 0) {
       matches = cities.filter((city) => {
         const regex = new RegExp(`${text}`, "gi");
         return city.city_ascii.match(regex);
       });
     }
+
+    console.log(cities,matches,text);
 
     setSuggestions(matches);
     setText(text);
@@ -50,14 +67,18 @@ function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (e.key == "Enter") {
-      setCity(text);
+      setText(text);
       let res = cities.filter((c) => text === c.city_ascii);
       setCityDetails(res);
+      console.log(res[0].lat);
+      setCord([res[0].lat, res[0].lng]);
       setText("");
     }
   };
 
-  console.log("cityDetails", cityDetails);
+  // console.log("cityDetails", cityDetails);
+
+  // console.log(cord);
 
   const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: "#D3CDC3",
@@ -70,6 +91,13 @@ function App() {
     justifyContent: "center",
     alignItems: "center",
   }));
+
+  if(cityDetails){
+    const {current} = mapRef;
+    if(current){
+      current.setView(cord);
+    }
+  }
 
   return (
     <div className="App">
@@ -139,26 +167,24 @@ function App() {
                       </Item>
                     </Grid>
                     <Grid item xs={8}>
-                      <Item style={{height:"19rem"}}>
-                        <p>Map container</p>
-                      </Item>
+                      <MapContainer
+                        center={cord}
+                        zoom={13}
+                        scrollWheelZoom={false}
+                        style={{ height: "20rem" }}
+                        id={text}
+                        ref={mapRef}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
+                        />
+                        <Marker position={cord}>
+                          <Tooltip>{text}</Tooltip>
+                        </Marker>
+                      </MapContainer>
                     </Grid>
                   </Grid>
-                  {/* <div style={{marginTop: "1rem"}}> 
-                    <MapContainer
-                      center={[c.lat, c.lng]}
-                      zoom={13}
-                      scrollWheelZoom={false}
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                        url='https://{s}.tile.osm.org/{z}/{x}/{y}.png'
-                      />
-                      <Marker position={[c.lat, c.lng]}>
-                        <Tooltip>{c.city}</Tooltip>
-                      </Marker>
-                    </MapContainer>
-                  </div> */}
                 </>
               );
             })
@@ -169,3 +195,44 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+{/* <Autocomplete
+            id="asynchronous-demo"
+            sx={{ width: 300 , background: "white"}}
+            open={open}
+            onOpen={() => {
+              setOpen(true);
+            }}
+            onClose={() => {
+              setOpen(false);
+            }}
+            onChange={(event, value) => setSelected(value)}
+            getOptionLabel={(option) => option.city}
+            options={options}
+            loading={loading}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <Fragment>
+                      {loading ? (
+                        <CircularProgress color="inherit" size={20} />
+                      ) : null}
+                      {params.InputProps.endAdornment}
+                    </Fragment>
+                  ),
+                }}
+              />
+            )}
+          /> */}

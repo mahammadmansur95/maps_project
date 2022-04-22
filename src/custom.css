@@ -5,3 +5,17 @@
 .suggestion:hover{
     background-color: gray;
 }
+
+.map_contaner{
+    /* position: relative;
+    height: calc(100vh - 100px);
+    border-radius: 15px; */
+    z-index: -1;
+    height: 100vh;
+}
+
+.body_container{
+z-index: 99;
+color: blue;
+}
+
